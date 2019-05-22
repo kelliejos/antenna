@@ -14,13 +14,14 @@ package org.eclipse.sw360.antenna.sw360.rest.workflow.processors;
 import org.eclipse.sw360.antenna.api.exceptions.AntennaConfigurationException;
 import org.eclipse.sw360.antenna.api.exceptions.AntennaException;
 import org.eclipse.sw360.antenna.model.artifact.Artifact;
-import org.eclipse.sw360.antenna.model.artifact.facts.ArtifactFilename;
-import org.eclipse.sw360.antenna.model.artifact.facts.ArtifactSourceUrl;
-import org.eclipse.sw360.antenna.model.artifact.facts.DeclaredLicenseInformation;
+import org.eclipse.sw360.antenna.model.artifact.facts.*;
 import org.eclipse.sw360.antenna.model.util.ArtifactLicenseUtils;
 import org.eclipse.sw360.antenna.model.xml.generated.License;
 import org.eclipse.sw360.antenna.sw360.SW360MetaDataReceiver;
+import org.eclipse.sw360.antenna.sw360.model.artifact.facts.ArtifactChangeStatus;
+import org.eclipse.sw360.antenna.sw360.model.artifact.facts.ArtifactClearingState;
 import org.eclipse.sw360.antenna.sw360.rest.resource.LinkObjects;
+import org.eclipse.sw360.antenna.sw360.rest.resource.SW360Attributes;
 import org.eclipse.sw360.antenna.sw360.rest.resource.Self;
 import org.eclipse.sw360.antenna.sw360.rest.resource.licenses.SW360License;
 import org.eclipse.sw360.antenna.sw360.rest.resource.licenses.SW360SparseLicense;
@@ -45,6 +46,11 @@ public class SW360EnricherTest extends AntennaTestWithMockedContext {
     private List<Artifact> artifacts;
     private SW360Enricher sw360Enricher;
     private SW360MetaDataReceiver connector;
+
+    private String sourceUrl = "source_url.com";
+    private String releaseTagUrl = "releaseTagUrl.com";
+    private String swhURL = "software_heritage.com";
+    private String hashString = "12345678test1";
 
     @Before
     public void setUp() throws AntennaConfigurationException {
@@ -80,9 +86,8 @@ public class SW360EnricherTest extends AntennaTestWithMockedContext {
 
 
     @Test
-    public void downloadUrlIsStoredAsFact() throws AntennaException {
-        SW360Release release0 = new SW360Release();
-        release0.setDownloadurl("some_download_url");
+    public void releaseIsMappedToArtifactCorrectly() throws AntennaException {
+        SW360Release release0 = mkSW360Release("test1");
         release0.set_Embedded(new SW360ReleaseEmbedded());
         release0.get_Embedded().setLicenses(Collections.emptyList());
 
@@ -90,8 +95,36 @@ public class SW360EnricherTest extends AntennaTestWithMockedContext {
 
         sw360Enricher.process(artifacts);
 
-        assertThat(artifacts.get(0).askFor(ArtifactSourceUrl.class).isPresent()).isTrue();
-        assertThat(artifacts.get(0).askForGet(ArtifactSourceUrl.class).get()).isEqualTo("some_download_url");
+        assertThat(artifacts.size()).isEqualTo(1);
+        Artifact artifact0 = artifacts.get(0);
+
+        assertThat(artifact0.askFor(ArtifactSourceUrl.class).isPresent()).isTrue();
+        assertThat(artifact0.askForGet(ArtifactSourceUrl.class).get()).isEqualTo(sourceUrl);
+        assertThat(artifact0.askFor(ArtifactReleaseTagURL.class).isPresent()).isTrue();
+        assertThat(artifact0.askForGet(ArtifactReleaseTagURL.class).get()).isEqualTo(releaseTagUrl);
+        assertThat(artifact0.askFor(ArtifactSoftwareHeritageURL.class).isPresent()).isTrue();
+        assertThat(artifact0.askForGet(ArtifactSoftwareHeritageURL.class).get()).isEqualTo(swhURL);
+
+        assertThat(artifact0.askFor(DeclaredLicenseInformation.class).isPresent()).isTrue();
+        License tempDLicense = new License();
+        tempDLicense.setName("Apache-2.0");
+        assertThat(artifact0.askForGet(DeclaredLicenseInformation.class).get().getLicenses()).contains(tempDLicense);
+
+        assertThat(artifact0.askFor(ObservedLicenseInformation.class).isPresent()).isTrue();
+        License tempOLicense = new License();
+        tempOLicense.setName("A Test License");
+        assertThat(artifact0.askForGet(ObservedLicenseInformation.class).get().getLicenses()).contains(tempOLicense);
+
+        assertThat(artifact0.askFor(ArtifactFilename.class).isPresent()).isTrue();
+        assertThat(artifact0.askForAll(ArtifactFilename.class).stream().findFirst().get()
+                .getArtifactFilenameEntries().stream().findFirst().get().getHash()).isEqualTo(hashString);
+
+        assertThat(artifact0.askFor(ArtifactClearingState.class).isPresent()).isTrue();
+        assertThat(artifact0.askForGet(ArtifactClearingState.class).get()).isEqualTo(ArtifactClearingState.ClearingState.PROJECT_APPROVED);
+
+        assertThat(artifact0.askFor(ArtifactChangeStatus.class).isPresent()).isTrue();
+        assertThat(artifact0.askForGet(ArtifactChangeStatus.class).get()).isEqualTo(ArtifactChangeStatus.ChangeStatus.AS_IS);
+
     }
 
     @Test
@@ -180,5 +213,26 @@ public class SW360EnricherTest extends AntennaTestWithMockedContext {
         license.setText(text);
         license.set_Links(sparseLicense.get_Links());
         return license;
+    }
+
+    private SW360Release mkSW360Release(String name) {
+        SW360Release sw360Release = new SW360Release();
+
+        sw360Release.setDownloadurl(sourceUrl);
+        sw360Release.setClearingState("PROJECT_APPROVED");
+
+        Map<String, String> externalIds = new HashMap<>();
+
+        externalIds.put(SW360Attributes.RELEASE_EXTERNAL_ID_DLICENSES, "Apache-2.0");
+        externalIds.put(SW360Attributes.RELEASE_EXTERNAL_ID_OLICENSES, "A Test License");
+        // externalIds.put(SW360CoordinateKeysToArtifactCoordinates.get(MavenCoordinates.class), "test:test1:1.2.3");
+        externalIds.put(SW360Attributes.RELEASE_EXTERNAL_ID_OREPO, releaseTagUrl);
+        externalIds.put(SW360Attributes.RELEASE_EXTERNAL_ID_SWHREPO, swhURL);
+        externalIds.put(SW360Attributes.RELEASE_EXTERNAL_ID_HASHES + "1", hashString);
+        externalIds.put(SW360Attributes.RELEASE_EXTERNAL_ID_CHANGESTATUS, "AS_IS");
+
+        sw360Release.setExternalIds(externalIds);
+
+        return sw360Release;
     }
 }

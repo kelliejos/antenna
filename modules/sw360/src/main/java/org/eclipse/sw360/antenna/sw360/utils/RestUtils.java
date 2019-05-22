@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Bosch Software Innovations GmbH 2017-2018.
+ * Copyright (c) Bosch Software Innovations GmbH 2017-2019.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -24,7 +24,9 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 public class RestUtils {
     private static ObjectMapper objectMapper = new ObjectMapper();
@@ -54,6 +56,7 @@ public class RestUtils {
         Map<String, Object> component = new HashMap<>();
         component.put(SW360Attributes.COMPONENT_COMPONENT_NAME, sw360Component.getName());
         component.put(SW360Attributes.COMPONENT_COMPONENT_TYPE, sw360Component.getComponentType().toString());
+        component.put(SW360Attributes.COMPONENT_HOMEPAGE, sw360Component.getHomepage());
         return getHttpEntity(component, header);
     }
 
@@ -74,7 +77,10 @@ public class RestUtils {
         release.put(SW360Attributes.RELEASE_NAME, sw360Release.getName());
         release.put(SW360Attributes.RELEASE_VERSION, sw360Release.getVersion());
         release.put(SW360Attributes.RELEASE_CPE_ID, sw360Release.getCpeid());
+        release.put(SW360Attributes.RELEASE_SOURCES, sw360Release.getDownloadurl());
+        release.put(SW360Attributes.RELEASE_CLEARINGSTATE, sw360Release.getClearingState());
         release.put(SW360Attributes.RELEASE_MAIN_LICENSE_IDS, sw360Release.getMainLicenseIds());
+        release.put(SW360Attributes.RELEASE_EXTERNAL_IDS, convertSW360ExternalIdsToMapOfStrings(sw360Release));
         return getHttpEntity(release, header);
     }
 
@@ -87,5 +93,57 @@ public class RestUtils {
         license.put(SW360Attributes.LICENSE_SHORT_NAME, shortName);
         license.put(SW360Attributes.LICENSE_TEXT, sw360License.getText());
         return getHttpEntity(license, header);
+    }
+
+    private static Map<String, String> convertSW360ExternalIdsToMapOfStrings(SW360Release sw360Release) {
+        Map<String, String> externalIds = new HashMap<>(sw360Release.getCoordinates());
+
+        if(sw360Release.getDeclaredLicense() != null) {
+            externalIds.put(SW360Attributes.RELEASE_EXTERNAL_ID_DLICENSES, convertSetOfStringsToString(sw360Release.getDeclaredLicense()));
+        }
+        if(sw360Release.getObservedLicense() != null) {
+            externalIds.put(SW360Attributes.RELEASE_EXTERNAL_ID_OLICENSES, convertSetOfStringsToString(sw360Release.getObservedLicense()));
+        }
+        if(sw360Release.getReleaseTagUrl() != null) {
+            externalIds.put(SW360Attributes.RELEASE_EXTERNAL_ID_OREPO, sw360Release.getReleaseTagUrl());
+        }
+        if(sw360Release.getSoftwareHeritageUrl() != null) {
+            externalIds.put(SW360Attributes.RELEASE_EXTERNAL_ID_SWHREPO, sw360Release.getSoftwareHeritageUrl());
+        }
+        if(sw360Release.getHashes() != null) {
+            externalIds.putAll(convertSetOfStringsOfHashesToMapOfStrings(sw360Release.getHashes()));
+        }
+        if(sw360Release.getChangeStatus() != null) {
+            externalIds.put(SW360Attributes.RELEASE_EXTERNAL_ID_CHANGESTATUS, sw360Release.getChangeStatus());
+        }
+
+        return externalIds;
+    }
+
+    private static Map<String, String> convertSetOfStringsOfHashesToMapOfStrings(Set<String> stringSet) {
+        Map<String, String> setMap = new HashMap<>();
+        int i = 1;
+        Iterator<String> it = stringSet.iterator();
+        while(it.hasNext()){
+            setMap.put(SW360Attributes.RELEASE_EXTERNAL_ID_HASHES + i, it.next());
+            i++;
+        }
+        return setMap;
+    }
+
+    private static String convertSetOfStringsToString(Set<String> stringSet) {
+        if(stringSet.isEmpty()) {
+            return null;
+        }
+
+        StringBuilder stringBuilder = new StringBuilder();
+
+        stringSet.forEach(string ->
+                stringBuilder.append(string).append("; ")
+        );
+
+        stringBuilder.delete(stringBuilder.length() - 2, stringBuilder.length() -1);
+
+        return stringBuilder.toString();
     }
 }
