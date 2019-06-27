@@ -23,7 +23,7 @@ steps:
 #- script: "echo '##vso[task.prependpath]$(build.sourcesdirectory)/maven'"
 #- script: '$(build.sourcesdirectory)/maven/apache-maven-3.3.9/bin/mvn clean install'
 - script: 'sudo chmod -R 777 /usr/share/apache-maven-3.6.1/bin/mvn'
-- script: 'mvn clean install -DinteractiveMode=false'
+- script: 'sudo mvn clean install -DinteractiveMode=false'
 - script: 'sudo ls -la -R  /usr/share'
   condition: always()
 
