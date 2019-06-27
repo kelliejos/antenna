@@ -1,0 +1,65 @@
+# Maven
+# Build your Java project and run tests with Apache Maven.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/java
+
+trigger:
+  branches:
+    include:
+      - '*'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- script: 'wget https://www-eu.apache.org/dist/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.zip'
+
+- task: ExtractFiles@1
+  inputs:
+    archiveFilePatterns: 'apache-maven-3.3.9-bin.zip'
+    destinationFolder: '$(build.sourcesdirectory)/maven'
+
+#- script: 'chmod -R 777 $(build.sourcesdirectory)/maven'
+#- script: "echo '##vso[task.prependpath]$(build.sourcesdirectory)/maven'"
+#- script: '$(build.sourcesdirectory)/maven/apache-maven-3.3.9/bin/mvn clean install'
+- script: 'sudo chmod -R 777 /usr/share/apache-maven-3.6.1/bin/mvn'
+- script: 'mvn clean install -DinteractiveMode=false'
+- script: 'sudo ls -la -R  /usr/share'
+  condition: always()
+
+#- task: Maven@3
+#  inputs:
+#    mavenPomFile: 'pom.xml'
+#    mavenOptions: '-Xmx3072m'
+#    javaHomeOption: 'JDKVersion'
+#    jdkVersionOption: '1.8'
+#    jdkArchitectureOption: 'x64'
+#    mavenVersionOption: 'Path'
+#    mavenDirectory: '$(build.sourcesdirectory)/maven/apache-maven-3.3.9'
+#    mavenSetM2Home: true
+#    publishJUnitResults: true
+#    testResultsFiles: '**/surefire-reports/TEST-*.xml'
+#    goals: 'clean install'
+
+#- task: Maven@3
+#  inputs:
+#    mavenPomFile: 'example-projects/example-project/pom.xml'
+#    mavenOptions: '-Xmx3072m'
+#    javaHomeOption: 'JDKVersion'
+#    jdkVersionOption: '1.8'
+#    jdkArchitectureOption: 'x64'
+#    goals: 'package'
+#
+#- script: |
+#    set -e
+#    gradle analyze
+#    java -jar ../../core/frontend-stubs-testing/target/antenna-test-project-asserter.jar ExampleTestProject build
+#  workingDirectory: 'example-projects/example-project'
+#  displayName: 'Gradle Test'
+#
+#- script: |
+#    set -e
+#    rm -R example-projects/example-project/target
+#    .travis/runCLI.sh example-projects/example-project
+#    java -jar core/frontend-stubs-testing/target/antenna-test-project-asserter.jar ExampleTestProject example-projects/example-project/target
+#  displayName: 'CLI Test'
