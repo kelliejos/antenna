@@ -25,23 +25,23 @@ steps:
 - script: 'sudo which mvn'
 - script: 'sudo chmod -R 777 /usr/share/apache-maven-3.6.1/bin/mvn'
 - script: 'sudo ls -la -R  /usr/share'
-- script: 'sudo mvn clean install -DinteractiveMode=false'
+#- script: 'sudo mvn clean install -DinteractiveMode=false'
 - script: 'sudo ls -la -R  /usr/share'
   condition: always()
 
-#- task: Maven@3
-#  inputs:
-#    mavenPomFile: 'pom.xml'
-#    mavenOptions: '-Xmx3072m'
-#    javaHomeOption: 'JDKVersion'
-#    jdkVersionOption: '1.8'
-#    jdkArchitectureOption: 'x64'
-#    mavenVersionOption: 'Path'
-#    mavenDirectory: '$(build.sourcesdirectory)/maven/apache-maven-3.3.9'
-#    mavenSetM2Home: true
-#    publishJUnitResults: true
-#    testResultsFiles: '**/surefire-reports/TEST-*.xml'
-#    goals: 'clean install'
+- task: Maven@3
+  inputs:
+   mavenPomFile: 'pom.xml'
+   mavenOptions: '-Xmx3072m'
+   javaHomeOption: 'JDKVersion'
+   jdkVersionOption: '1.8'
+   jdkArchitectureOption: 'x64'
+   mavenVersionOption: 'Path'
+   mavenDirectory: '$(build.sourcesdirectory)/maven/apache-maven-3.3.9'
+   mavenSetM2Home: true
+   publishJUnitResults: true
+   testResultsFiles: '**/surefire-reports/TEST-*.xml'
+   goals: 'clean install'
 
 #- task: Maven@3
 #  inputs:
